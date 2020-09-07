@@ -40,6 +40,14 @@ pycocotools/*
 results*.txt
 gcp_test*.sh
 
+#nuscenes stuff --------------------------------------------------------------------------------------------------------
+nuscenes/images/*
+nuscenes/labels/*
+nuscenes/samples/*
+nuscenes/scenes/*
+nuscenes/sweeps/*
+nuscenes/v1.0-mini/*
+
 # MATLAB GitIgnore -----------------------------------------------------------------------------------------------------
 *.m~
 *.mat

@@ -1,0 +1,18 @@
+train: C:\Users\W\Desktop\dev\yolov5\nuscenes\images\train
+val: C:\Users\W\Desktop\dev\yolov5\nuscenes\images\train
+nc: 14
+names:
+- animal
+- barrier
+- bicycle
+- bicycle rack
+- bus
+- car
+- construction vechicle
+- debris
+- motorcycle
+- object_pushable_pullable
+- person
+- traffic cone
+- trailer
+- truck
