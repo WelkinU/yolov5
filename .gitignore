@@ -47,6 +47,9 @@ nuscenes/samples/*
 nuscenes/scenes/*
 nuscenes/sweeps/*
 nuscenes/v1.0-mini/*
+nuscenes/v1.0-test/*
+nuscenes/v1.0-train/*
+nuscenes/v1.0-val/*
 
 # MATLAB GitIgnore -----------------------------------------------------------------------------------------------------
 *.m~

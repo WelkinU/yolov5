@@ -1,9 +1,9 @@
 from nuimages import NuImages
+from tqdm import tqdm
 import os.path
 import yaml
 
 #---------------------------------- DEFINE CONSTANTS HERE -----------------------------------------
-DATASET_VERSION = 'v1.0-mini'
 DATA_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 #nuimages has same image dimensions for all images
@@ -52,29 +52,32 @@ with open(os.path.join(DATA_ROOT,'nuimages.yaml'),'w') as file:
 
 #-------------------------------  Dump Images & Create Label files -------------------------------------
 #Create files per section #2 of https://github.com/ultralytics/yolov5/issues/12
-nuim = NuImages(dataroot=DATA_ROOT, version=DATASET_VERSION, verbose=True, lazy=True)
 
-#create reverse class index dictionary
-class_index_map = {obj_class:classes.index(class_map[obj_class]) for obj_class in class_map}
+for version in ['train','val']:
+	print(f'Processing {version} set...')
+	nuim = NuImages(dataroot=DATA_ROOT, version='v1.0-'+version, verbose=True, lazy=True)
 
-for sample_idx in range(len(nuim.sample)):
-	sample = nuim.get('sample', nuim.sample[sample_idx]['token'])
-	key_camera_token = sample['key_camera_token']
+	#create reverse class index dictionary
+	class_index_map = {obj_class:classes.index(class_map[obj_class]) for obj_class in class_map}
 
-	nuim.render_image(key_camera_token, annotation_type='none',with_category=True, with_attributes=True, box_line_width=-1, render_scale=5, 
-						out_path = os.path.join(DATA_ROOT,'images','train',f'{sample_idx}.jpg'))
-	object_tokens, surface_tokens = nuim.list_anns(sample['token'], verbose = False)
+	for sample_idx in tqdm(range(len(nuim.sample))):
+		sample = nuim.get('sample', nuim.sample[sample_idx]['token'])
+		key_camera_token = sample['key_camera_token']
 
-	with open(os.path.join(DATA_ROOT,'labels','train',f'{sample_idx}.txt'),'w') as file:
-		for object_token in object_tokens:
-			token_data = nuim.get('object_ann',object_token)
-			token_name = nuim.get('category',token_data['category_token'])['name']
+		nuim.render_image(key_camera_token, annotation_type='none',with_category=True, with_attributes=True, box_line_width=-1, render_scale=5, 
+							out_path = os.path.join(DATA_ROOT,'images',version,f'{sample_idx}.jpg'))
+		object_tokens, surface_tokens = nuim.list_anns(sample['token'], verbose = False)
 
-			file.writelines('{} {} {} {} {}\n'.format(class_index_map[token_name],
-													(token_data['bbox'][2] + token_data['bbox'][0])/(IMAGE_WIDTH * 2),
-													(token_data['bbox'][3] + token_data['bbox'][1])/(IMAGE_HEIGHT * 2),
-													(token_data['bbox'][2] - token_data['bbox'][0])/IMAGE_WIDTH,
-													(token_data['bbox'][3] - token_data['bbox'][1])/IMAGE_HEIGHT,
-													))
+		with open(os.path.join(DATA_ROOT,'labels',version,f'{sample_idx}.txt'),'w') as file:
+			for object_token in object_tokens:
+				token_data = nuim.get('object_ann',object_token)
+				token_name = nuim.get('category',token_data['category_token'])['name']
+
+				file.writelines('{} {} {} {} {}\n'.format(class_index_map[token_name],
+														(token_data['bbox'][2] + token_data['bbox'][0])/(IMAGE_WIDTH * 2),
+														(token_data['bbox'][3] + token_data['bbox'][1])/(IMAGE_HEIGHT * 2),
+														(token_data['bbox'][2] - token_data['bbox'][0])/IMAGE_WIDTH,
+														(token_data['bbox'][3] - token_data['bbox'][1])/IMAGE_HEIGHT,
+														))
 
 	

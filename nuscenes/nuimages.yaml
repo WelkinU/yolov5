@@ -1,5 +1,5 @@
 train: C:\Users\W\Desktop\dev\yolov5\nuscenes\images\train
-val: C:\Users\W\Desktop\dev\yolov5\nuscenes\images\train
+val: C:\Users\W\Desktop\dev\yolov5\nuscenes\images\val
 nc: 14
 names:
 - animal
