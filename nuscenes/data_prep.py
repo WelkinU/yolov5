@@ -34,12 +34,14 @@ class_map = {
 			'vehicle.motorcycle': 'motorcycle',
 			'vehicle.trailer': 'trailer',
 			'vehicle.truck': 'truck',
+			'vehicle.ego': 'None', #ignore ego vehicle
 			}
 
 #-------------------------------  AutoGenerate nuimages.yaml file -------------------------------------
 #Create YAML file per section #1 of https://github.com/ultralytics/yolov5/issues/12
 with open(os.path.join(DATA_ROOT,'nuimages.yaml'),'w') as file:
 	classes = sorted(list(set(class_map.values())))
+	classes = [c for c in classes if c!= 'None']
 	print(classes)
 	
 	data = {'train': os.path.join(DATA_ROOT,'images','train'),
@@ -57,15 +59,16 @@ for version in ['train','val']:
 	print(f'Processing {version} set...')
 	nuim = NuImages(dataroot=DATA_ROOT, version='v1.0-'+version, verbose=True, lazy=True)
 
-	#create reverse class index dictionary
-	class_index_map = {obj_class:classes.index(class_map[obj_class]) for obj_class in class_map}
+	#create reverse class index dictionary: {animal -> 0, barrier -> 1, bicycle -> 2, ...}
+	class_index_map = {obj_class:classes.index(class_map[obj_class]) for obj_class in class_map if class_map[obj_class] != 'None'}
 
-	for sample_idx in tqdm(range(len(nuim.sample))):
+	for sample_idx in tqdm(range(0,len(nuim.sample))):
 		sample = nuim.get('sample', nuim.sample[sample_idx]['token'])
 		key_camera_token = sample['key_camera_token']
 
 		nuim.render_image(key_camera_token, annotation_type='none',with_category=True, with_attributes=True, box_line_width=-1, render_scale=5, 
-							out_path = os.path.join(DATA_ROOT,'images',version,f'{sample_idx}.jpg'))
+							out_path = os.path.join(DATA_ROOT,'images',version,f'{sample_idx}.jpg'))		
+
 		object_tokens, surface_tokens = nuim.list_anns(sample['token'], verbose = False)
 
 		with open(os.path.join(DATA_ROOT,'labels',version,f'{sample_idx}.txt'),'w') as file:
@@ -73,11 +76,10 @@ for version in ['train','val']:
 				token_data = nuim.get('object_ann',object_token)
 				token_name = nuim.get('category',token_data['category_token'])['name']
 
-				file.writelines('{} {} {} {} {}\n'.format(class_index_map[token_name],
-														(token_data['bbox'][2] + token_data['bbox'][0])/(IMAGE_WIDTH * 2),
-														(token_data['bbox'][3] + token_data['bbox'][1])/(IMAGE_HEIGHT * 2),
-														(token_data['bbox'][2] - token_data['bbox'][0])/IMAGE_WIDTH,
-														(token_data['bbox'][3] - token_data['bbox'][1])/IMAGE_HEIGHT,
-														))
-
-	
+				if class_map[token_name] != 'None':
+					file.writelines('{} {} {} {} {}\n'.format(class_index_map[token_name],
+															(token_data['bbox'][2] + token_data['bbox'][0])/(IMAGE_WIDTH * 2),
+															(token_data['bbox'][3] + token_data['bbox'][1])/(IMAGE_HEIGHT * 2),
+															(token_data['bbox'][2] - token_data['bbox'][0])/IMAGE_WIDTH,
+															(token_data['bbox'][3] - token_data['bbox'][1])/IMAGE_HEIGHT,
+															))
