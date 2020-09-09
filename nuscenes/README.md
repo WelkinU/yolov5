@@ -12,7 +12,7 @@
 ## Training
 ### Minimal Example - Train YOLOv5x model at max image size, single GPU
 
-Run `train.py --weights 'yolov5x.pt' --cfg ./models/yolov5x.yaml --data ./nuscenes/nuimages.yaml --img-size 1600 --batch-size 1 --epochs 1 --device '0'
+Run `python train.py --weights 'yolov5x.pt' --cfg ./models/yolov5x.yaml --data ./nuscenes/nuimages.yaml --img-size 1600 --batch-size 1 --epochs 1 --device '0'`
 
 Notes:
 * YOLOv5x at img-size=1600 batch_size=1 uses ~6GB gpu memory, but the torch NMS can spike much higher (>8GB). Can use `--notest` to avoid this.
