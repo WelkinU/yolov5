@@ -1,6 +1,6 @@
 from nuimages import NuImages
 from tqdm import tqdm
-import os.path
+import os
 import yaml
 
 #---------------------------------- DEFINE CONSTANTS HERE -----------------------------------------
@@ -57,6 +57,11 @@ with open(os.path.join(DATA_ROOT,'nuimages.yaml'),'w') as file:
 
 for version in ['train','val']:
 	print(f'Processing {version} set...')
+
+	#make image and label output directories if they don't exist
+	os.makedirs(os.path.join(DATA_ROOT,'images',version),exist_ok = True)
+	os.makedirs(os.path.join(DATA_ROOT,'labels',version),exist_ok = True)
+
 	nuim = NuImages(dataroot=DATA_ROOT, version='v1.0-'+version, verbose=True, lazy=True)
 
 	#create reverse class index dictionary: {animal -> 0, barrier -> 1, bicycle -> 2, ...}
