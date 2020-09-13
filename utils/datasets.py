@@ -68,7 +68,7 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
                                     num_workers=nw,
                                     sampler=sampler,
                                     pin_memory=True,
-                                    collate_fn=LoadImagesAndLabels.collate_fn)
+                                    collate_fn=LoadImagesAndLabels.collate_fn)  # torch.utils.data.DataLoader()
     return dataloader, dataset
 
 
@@ -80,7 +80,7 @@ class InfiniteDataLoader(torch.utils.data.dataloader.DataLoader):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        object.__setattr__(self, 'batch_sampler', self._RepeatSampler(self.batch_sampler))
+        object.__setattr__(self, 'batch_sampler', _RepeatSampler(self.batch_sampler))
         self.iterator = super().__iter__()
 
     def __len__(self):
@@ -90,19 +90,20 @@ class InfiniteDataLoader(torch.utils.data.dataloader.DataLoader):
         for i in range(len(self)):
             yield next(self.iterator)
 
-    class _RepeatSampler(object):
-        """ Sampler that repeats forever.
 
-        Args:
-            sampler (Sampler)
-        """
+class _RepeatSampler(object):
+    """ Sampler that repeats forever.
 
-        def __init__(self, sampler):
-            self.sampler = sampler
+    Args:
+        sampler (Sampler)
+    """
 
-        def __iter__(self):
-            while True:
-                yield from iter(self.sampler)
+    def __init__(self, sampler):
+        self.sampler = sampler
+
+    def __iter__(self):
+        while True:
+            yield from iter(self.sampler)
 
 
 class LoadImages:  # for inference
@@ -362,8 +363,8 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.stride = stride
 
         # Define labels
-        self.label_files = [x.replace('images', 'labels').replace(os.path.splitext(x)[-1], '.txt') for x in
-                            self.img_files]
+        sa, sb = os.sep + 'images' + os.sep, os.sep + 'labels' + os.sep  # /images/, /labels/ substrings
+        self.label_files = [sb.join(x.rsplit(sa, 1)).replace(os.path.splitext(x)[-1], '.txt') for x in self.img_files]
 
         # Check cache
         cache_path = str(Path(self.label_files[0]).parent) + '.cache'  # cached labels
