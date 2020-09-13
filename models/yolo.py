@@ -95,7 +95,7 @@ class Model(nn.Module):
     def forward(self, x, augment=False, profile=False):
         if augment:
             img_size = x.shape[-2:]  # height, width
-            s = [1, 0.83, 0.67]  # scales
+            s = [1, 0.75, 0.5]  # scales
             f = [None, 3, None]  # flips (2-ud, 3-lr)
             y = []  # outputs
             for si, fi in zip(s, f):
