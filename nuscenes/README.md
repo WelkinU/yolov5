@@ -18,3 +18,6 @@ Notes:
 * YOLOv5x at img-size=1600 batch_size=1 uses ~6GB gpu memory, but the torch NMS can spike much higher (>8GB). Can use `--notest` to avoid this.
 * YOLOv5 uses a virtual batch size of 64, so gradient updates will be accumulated until hitting 64.
 * Using the `--rect` argument disables mosaic augmentation. According to [#55](https://github.com/ultralytics/yolov5/issues/55) rect is faster and uses less memory, but mosaic augmentation is important for detecting smaller objects.
+
+## Inference
+Follow the instructions in the main repo to run inference using `detect.py`.
