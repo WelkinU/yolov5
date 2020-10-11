@@ -10,6 +10,10 @@ DATA_ROOT = os.path.dirname(os.path.realpath(__file__))
 IMAGE_WIDTH = 1600
 IMAGE_HEIGHT = 900
 
+'''class_map dict maps nuimages classes to other class names.
+ex. human.pedestrian.adult and human.pedestrian.child both get mapped to "person"
+vehicle.ego is removed from the data labels because it's string is "None"
+'''
 class_map = {
 			'animal': 'animal',
 			'human.pedestrian.adult': 'person',

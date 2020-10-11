@@ -40,6 +40,8 @@ pycocotools/*
 results*.txt
 gcp_test*.sh
 
+inference/*
+
 #nuscenes stuff --------------------------------------------------------------------------------------------------------
 nuscenes/images/*
 nuscenes/labels/*

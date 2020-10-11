@@ -118,7 +118,7 @@ def detect():
             # Stream results
             if view_img:
                 cv2.imshow(p, im0)
-                if cv2.waitKey(1) == ord('q'):  # q to quit
+                if cv2.waitKey(1) in [ord('q'),ord('esc')]:  # q or esc to quit
                     raise StopIteration
 
             # Save results (image with detections)
