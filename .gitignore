@@ -26,8 +26,8 @@
 storage.googleapis.com
 runs/*
 data/*
-!data/samples/zidane.jpg
-!data/samples/bus.jpg
+!data/images/zidane.jpg
+!data/images/bus.jpg
 !data/coco.names
 !data/coco_paper.names
 !data/coco.data
@@ -52,6 +52,11 @@ nuscenes/v1.0-mini/*
 nuscenes/v1.0-test/*
 nuscenes/v1.0-train/*
 nuscenes/v1.0-val/*
+
+# Datasets -------------------------------------------------------------------------------------------------------------
+coco/
+coco128/
+VOC/
 
 # MATLAB GitIgnore -----------------------------------------------------------------------------------------------------
 *.m~
@@ -92,8 +97,10 @@ sdist/
 var/
 wheels/
 *.egg-info/
+wandb/
 .installed.cfg
 *.egg
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
