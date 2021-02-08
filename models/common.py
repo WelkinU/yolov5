@@ -1,6 +1,7 @@
 # This file contains modules common to various models
 
 import math
+
 import numpy as np
 import requests
 import torch
@@ -30,7 +31,7 @@ class Conv(nn.Module):
         super(Conv, self).__init__()
         self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p), groups=g, bias=False)
         self.bn = nn.BatchNorm2d(c2)
-        self.act = nn.Hardswish() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
+        self.act = nn.SiLU() if act is True else (act if isinstance(act, nn.Module) else nn.Identity())
 
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
@@ -105,9 +106,39 @@ class Focus(nn.Module):
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
         super(Focus, self).__init__()
         self.conv = Conv(c1 * 4, c2, k, s, p, g, act)
+        # self.contract = Contract(gain=2)
 
     def forward(self, x):  # x(b,c,w,h) -> y(b,4c,w/2,h/2)
         return self.conv(torch.cat([x[..., ::2, ::2], x[..., 1::2, ::2], x[..., ::2, 1::2], x[..., 1::2, 1::2]], 1))
+        # return self.conv(self.contract(x))
+
+
+class Contract(nn.Module):
+    # Contract width-height into channels, i.e. x(1,64,80,80) to x(1,256,40,40)
+    def __init__(self, gain=2):
+        super().__init__()
+        self.gain = gain
+
+    def forward(self, x):
+        N, C, H, W = x.size()  # assert (H / s == 0) and (W / s == 0), 'Indivisible gain'
+        s = self.gain
+        x = x.view(N, C, H // s, s, W // s, s)  # x(1,64,40,2,40,2)
+        x = x.permute(0, 3, 5, 1, 2, 4).contiguous()  # x(1,2,2,64,40,40)
+        return x.view(N, C * s * s, H // s, W // s)  # x(1,256,40,40)
+
+
+class Expand(nn.Module):
+    # Expand channels into width-height, i.e. x(1,64,80,80) to x(1,16,160,160)
+    def __init__(self, gain=2):
+        super().__init__()
+        self.gain = gain
+
+    def forward(self, x):
+        N, C, H, W = x.size()  # assert C / s ** 2 == 0, 'Indivisible gain'
+        s = self.gain
+        x = x.view(N, s, s, C // s ** 2, H, W)  # x(1,2,2,16,80,80)
+        x = x.permute(0, 3, 4, 1, 5, 2).contiguous()  # x(1,16,80,2,80,2)
+        return x.view(N, C // s ** 2, H * s, W * s)  # x(1,16,160,160)
 
 
 class Concat(nn.Module):
@@ -210,27 +241,29 @@ class Detections:
         self.xywhn = [x / g for x, g in zip(self.xywh, gn)]  # xywh normalized
         self.n = len(self.pred)
 
-    def display(self, pprint=False, show=False, save=False):
+    def display(self, pprint=False, show=False, save=False, render=False):
         colors = color_list()
         for i, (img, pred) in enumerate(zip(self.imgs, self.pred)):
-            str = f'Image {i + 1}/{len(self.pred)}: {img.shape[0]}x{img.shape[1]} '
+            str = f'image {i + 1}/{len(self.pred)}: {img.shape[0]}x{img.shape[1]} '
             if pred is not None:
                 for c in pred[:, -1].unique():
                     n = (pred[:, -1] == c).sum()  # detections per class
-                    str += f'{n} {self.names[int(c)]}s, '  # add to string
-                if show or save:
+                    str += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "  # add to string
+                if show or save or render:
                     img = Image.fromarray(img.astype(np.uint8)) if isinstance(img, np.ndarray) else img  # from np
                     for *box, conf, cls in pred:  # xyxy, confidence, class
                         # str += '%s %.2f, ' % (names[int(cls)], conf)  # label
                         ImageDraw.Draw(img).rectangle(box, width=4, outline=colors[int(cls) % 10])  # plot
+            if pprint:
+                print(str.rstrip(', '))
+            if show:
+                img.show(f'image {i}')  # show
             if save:
                 f = f'results{i}.jpg'
-                str += f"saved to '{f}'"
                 img.save(f)  # save
-            if show:
-                img.show(f'Image {i}')  # show
-            if pprint:
-                print(str)
+                print(f"{'Saving' * (i == 0)} {f},", end='' if i < self.n - 1 else ' done.\n')
+            if render:
+                self.imgs[i] = np.asarray(img)
 
     def print(self):
         self.display(pprint=True)  # print results
@@ -240,6 +273,10 @@ class Detections:
 
     def save(self):
         self.display(save=True)  # save results
+
+    def render(self):
+        self.display(render=True)  # render results
+        return self.imgs
 
     def __len__(self):
         return self.n
@@ -253,20 +290,13 @@ class Detections:
         return x
 
 
-class Flatten(nn.Module):
-    # Use after nn.AdaptiveAvgPool2d(1) to remove last 2 dimensions
-    @staticmethod
-    def forward(x):
-        return x.view(x.size(0), -1)
-
-
 class Classify(nn.Module):
     # Classification head, i.e. x(b,c1,20,20) to x(b,c2)
     def __init__(self, c1, c2, k=1, s=1, p=None, g=1):  # ch_in, ch_out, kernel, stride, padding, groups
         super(Classify, self).__init__()
         self.aap = nn.AdaptiveAvgPool2d(1)  # to x(b,c1,1,1)
         self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p), groups=g)  # to x(b,c2,1,1)
-        self.flat = Flatten()
+        self.flat = nn.Flatten()
 
     def forward(self, x):
         z = torch.cat([self.aap(y) for y in (x if isinstance(x, list) else [x])], 1)  # cat if list

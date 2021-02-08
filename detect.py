@@ -9,8 +9,8 @@ from numpy import random
 
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
-from utils.general import check_img_size, non_max_suppression, apply_classifier, scale_coords, xyxy2xywh, \
-    strip_optimizer, set_logging, increment_path
+from utils.general import check_img_size, check_requirements, non_max_suppression, apply_classifier, scale_coords, \
+    xyxy2xywh, strip_optimizer, set_logging, increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
@@ -32,7 +32,8 @@ def detect():
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
-    imgsz = check_img_size(imgsz, s=model.stride.max())  # check img_size
+    stride = int(model.stride.max())  # model stride
+    imgsz = check_img_size(imgsz, s=stride)  # check img_size
     if half:
         model.half()  # to FP16
 
@@ -47,19 +48,19 @@ def detect():
     if webcam:
         view_img = True
         cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz)
+        dataset = LoadStreams(source, img_size=imgsz, stride=stride)
     else:
         save_img = True
-        dataset = LoadImages(source, img_size=imgsz)
+        dataset = LoadImages(source, img_size=imgsz, stride=stride)
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
     # Run inference
+    if device.type != 'cpu':
+        model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
     t0 = time.time()
-    img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
-    _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -98,7 +99,7 @@ def detect():
                 # Print results
                 for c in det[:, -1].unique():
                     n = (det[:, -1] == c).sum()  # detections per class
-                    s += f'{n} {names[int(c)]}s, '  # add to string
+                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
                 # Write results
                 for *xyxy, conf, cls in reversed(det):
@@ -166,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     opt = parser.parse_args()
     print(opt)
+    check_requirements()
 
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
