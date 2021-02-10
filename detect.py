@@ -1,6 +1,7 @@
 import argparse
 import time
 from pathlib import Path
+import os.path
 
 import cv2
 import torch
@@ -15,9 +16,8 @@ from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
 
-
-def detect():
-    out, source, weights, view_img, save_txt, imgsz, save_img = opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, opt.save_img
+def detect(save_img=False):
+    source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://'))
 
@@ -88,8 +88,13 @@ def detect():
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # img.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
+            if opt.fastapi_outtag is not None:
+                print(p.name)
+                save_path = f'./data/fastapi_download/{opt.fastapi_outtag}{os.path.splitext(p.name)[1]}'
+                txt_path = f'./data/fastapi_download/{opt.fastapi_outtag}'
+            else:
+                save_path = str(save_dir / p.name)  # img.jpg
+                txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             if len(det):
@@ -119,8 +124,7 @@ def detect():
             # Stream results
             if view_img:
                 cv2.imshow(str(p), im0)
-                if cv2.waitKey(1) in [ord('q'),ord('esc')]:  # q or esc to quit
-                    raise StopIteration
+                cv2.waitKey(1) # 1 millisecond
 
             # Save results (image with detections)
             if save_img:
@@ -155,7 +159,6 @@ if __name__ == '__main__':
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
-    parser.add_argument('--save-img', action='store_true', help='save results to *.jpg')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
@@ -165,9 +168,10 @@ if __name__ == '__main__':
     parser.add_argument('--project', default='runs/detect', help='save results to project/name')
     parser.add_argument('--name', default='exp', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
+    parser.add_argument('--fastapi-outtag', default = None, help = 'argument to save output image to directory for FastAPI')
     opt = parser.parse_args()
     print(opt)
-    check_requirements()
+    #check_requirements()
 
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)

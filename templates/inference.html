@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Results</h2>
+
+<table class="table">
+<thead>
+  <tr>
+    <th>Class</th>
+    <th>CenterX</th>
+    <th>CenterY</th>
+    <th>Width</th>
+    <th>Height</th>
+  </tr>
+</thead>
+{% for row in df.values %}
+  <tr>
+    <td>{{ row[0] }}</td>
+    <td>{{ row[1] }}</td>
+    <td>{{ row[2] }}</td>
+    <td>{{ row[3] }}</td>
+    <td>{{ row[4] }}</td>
+  </tr>
+{% endfor %}
+</table>
+
+<!-- Should not be localhost:8000 in this URL, wasn't sure how 
+to get the image to load without using this though -->
+<img src="http://localhost:8000/image/?tag={{ tag }}"/>
+
+{% endblock %}

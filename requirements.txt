@@ -28,3 +28,10 @@ pandas
 # extras --------------------------------------
 thop  # FLOPS computation
 pycocotools>=2.0  # COCO mAP
+
+# FastAPI --------------------------------------
+fastapi
+uvicorn
+jinja2
+aiofiles
+python-multipart
